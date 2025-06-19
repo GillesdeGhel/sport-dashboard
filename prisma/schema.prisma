@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Player {
+  id           String   @id @default(cuid())
+  name         String
+  email        String?
+  phone        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relationships
+  player1Matches Match[] @relation("Player1Matches")
+  player2Matches Match[] @relation("Player2Matches")
+  player3Matches Match[] @relation("Player3Matches")
+  player4Matches Match[] @relation("Player4Matches")
+
+  @@map("players")
+}
+
+model Match {
+  id           String   @id @default(cuid())
+  sportType    String   // 'padel' | 'badminton'
+  matchType    String   // 'singles' | 'doubles'
+  player1Id    String
+  player2Id    String
+  player3Id    String?
+  player4Id    String?
+  player1Name  String
+  player2Name  String
+  player3Name  String?
+  player4Name  String?
+  winner       String?  // 'player1' | 'player2' | null
+  date         DateTime
+  duration     Int?     // in minutes
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relationships
+  player1      Player   @relation("Player1Matches", fields: [player1Id], references: [id])
+  player2      Player   @relation("Player2Matches", fields: [player2Id], references: [id])
+  player3      Player?  @relation("Player3Matches", fields: [player3Id], references: [id])
+  player4      Player?  @relation("Player4Matches", fields: [player4Id], references: [id])
+  sets         Set[]
+
+  @@map("matches")
+}
+
+model Set {
+  id           String   @id @default(cuid())
+  matchId      String
+  player1Score Int
+  player2Score Int
+  winner       String   // 'player1' | 'player2'
+  setOrder     Int      // Order of the set in the match
+  createdAt    DateTime @default(now())
+
+  // Relationships
+  match        Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@map("sets")
+} 
