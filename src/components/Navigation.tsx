@@ -6,6 +6,7 @@ const navItems = [
   { name: 'Players', path: '/players' },
   { name: 'Matches', path: '/matches' },
   { name: 'Add Match', path: '/add-match' },
+  { name: 'CSV Import', path: '/csv-import' },
 ];
 
 const Navigation: React.FC = () => {

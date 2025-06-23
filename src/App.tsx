@@ -9,6 +9,7 @@ import Players from './components/Players';
 import Matches from './components/Matches';
 import AddMatch from './components/AddMatch';
 import PlayerDetail from './components/PlayerDetail';
+import CsvImport from './components/CsvImport';
 import './index.css';
 
 function App() {
@@ -232,6 +233,10 @@ function App() {
                   onAddMatch={addMatch}
                 />
               } 
+            />
+            <Route 
+              path="/csv-import" 
+              element={<CsvImport />} 
             />
           </Routes>
         </main>

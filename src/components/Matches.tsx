@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Match, Player } from '../types';
+import EditMatch from './EditMatch';
 
 interface MatchesProps {
   matches: Match[];
@@ -9,6 +10,8 @@ interface MatchesProps {
 }
 
 const Matches: React.FC<MatchesProps> = ({ matches, players, onUpdateMatch, onDeleteMatch }) => {
+  const [editingMatch, setEditingMatch] = useState<Match | null>(null);
+
   const getPlayerDisplay = (match: Match) => {
     if (match.matchType === 'doubles') {
       return (
@@ -37,6 +40,31 @@ const Matches: React.FC<MatchesProps> = ({ matches, players, onUpdateMatch, onDe
     }
     return match.winner === 'player1' ? match.player1Name : match.player2Name;
   };
+
+  const handleEditMatch = (match: Match) => {
+    setEditingMatch(match);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMatch(null);
+  };
+
+  const handleUpdateMatch = (updatedMatch: Match) => {
+    onUpdateMatch(updatedMatch);
+    setEditingMatch(null);
+  };
+
+  // If we're editing a match, show the edit form
+  if (editingMatch) {
+    return (
+      <EditMatch
+        match={editingMatch}
+        players={players}
+        onUpdateMatch={handleUpdateMatch}
+        onCancel={handleCancelEdit}
+      />
+    );
+  }
 
   return (
     <div>
@@ -80,11 +108,20 @@ const Matches: React.FC<MatchesProps> = ({ matches, players, onUpdateMatch, onDe
                 </td>
                 <td className="py-2 font-medium text-green-600">{getWinnerDisplay(match)}</td>
                 <td className="py-2">
-                  {/* Future: Add edit functionality */}
-                  <button
-                    className="text-red-500 hover:text-red-700 hover:underline"
-                    onClick={() => onDeleteMatch(match.id)}
-                  >Delete</button>
+                  <div className="flex gap-2">
+                    <button
+                      className="text-blue-500 hover:text-blue-700 hover:underline"
+                      onClick={() => handleEditMatch(match)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="text-red-500 hover:text-red-700 hover:underline"
+                      onClick={() => onDeleteMatch(match.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
