@@ -9,9 +9,9 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ players, matches }) => {
-  const [selectedPlayers, setSelectedPlayers] = useState<string[]>(players.map(p => p.id));
-  const [selectedSport, setSelectedSport] = useState<string>('all');
-  const [headToHeadOnly, setHeadToHeadOnly] = useState(false);
+  const [selectedPlayers, setSelectedPlayers] = useState<string[]>(['cmc902ngv000111nx51ia0i0d', 'cmc902kft000011nx8uw3lz77']);
+  const [selectedSport, setSelectedSport] = useState<string>('badminton');
+  const [headToHeadOnly, setHeadToHeadOnly] = useState(true);
 
   // Filtered players and matches
   const filteredPlayers = players.filter(p => selectedPlayers.includes(p.id));
@@ -172,27 +172,28 @@ const Dashboard: React.FC<DashboardProps> = ({ players, matches }) => {
       value: stats.totalSetsWon,
     };
   });
-  const pieColors = ["#38bdf8", "#22c55e", "#fbbf24", "#ef4444", "#a78bfa", "#f472b6", "#facc15", "#818cf8"]; // extend as needed
+  const pieColors = ["#f472b6", "#22c55e", "#a78bfa", "#38bdf8", "#fbbf24", "#ef4444", "#facc15", "#818cf8"]; // extend as needed
 
-  // Calculate total points won/lost for each filtered player
-  const pointsStats = filteredPlayers.map(player => {
-    let pointsWon = 0;
-    let pointsLost = 0;
+  // Calculate total points won/lost for each filtered player, grouped by sport
+  const pointsStatsBySport = filteredPlayers.map(player => {
+    const statsBySport: { [sport: string]: { pointsWon: number, pointsLost: number } } = {};
     filteredMatches.forEach(match => {
       const isTeam1 = match.player1Id === player.id || match.player3Id === player.id;
       const isTeam2 = match.player2Id === player.id || match.player4Id === player.id;
       if (!isTeam1 && !isTeam2) return;
+      const sport = match.sportType || 'unknown';
+      if (!statsBySport[sport]) statsBySport[sport] = { pointsWon: 0, pointsLost: 0 };
       match.sets.forEach(set => {
         if (isTeam1) {
-          pointsWon += set.player1Score;
-          pointsLost += set.player2Score;
+          statsBySport[sport].pointsWon += set.player1Score;
+          statsBySport[sport].pointsLost += set.player2Score;
         } else if (isTeam2) {
-          pointsWon += set.player2Score;
-          pointsLost += set.player1Score;
+          statsBySport[sport].pointsWon += set.player2Score;
+          statsBySport[sport].pointsLost += set.player1Score;
         }
       });
     });
-    return { name: player.name, pointsWon, pointsLost };
+    return { name: player.name, statsBySport };
   });
 
   // 1. Barres groupées : points gagnés par set et par joueur
@@ -245,6 +246,34 @@ const Dashboard: React.FC<DashboardProps> = ({ players, matches }) => {
     return { name: player.name, value };
   });
 
+  // Préparation des données pour un bar chart multi-joueurs
+  const avgMarginPerPlayer = [
+    filteredPlayers.reduce((acc, player) => {
+      let totalMargin = 0;
+      let matchCount = 0;
+      filteredMatches.forEach(match => {
+        const isTeam1 = match.player1Id === player.id || match.player3Id === player.id;
+        const isTeam2 = match.player2Id === player.id || match.player4Id === player.id;
+        if (!isTeam1 && !isTeam2) return;
+        let pointsWon = 0;
+        let pointsLost = 0;
+        match.sets.forEach(set => {
+          if (isTeam1) {
+            pointsWon += set.player1Score;
+            pointsLost += set.player2Score;
+          } else if (isTeam2) {
+            pointsWon += set.player2Score;
+            pointsLost += set.player1Score;
+          }
+        });
+        totalMargin += (pointsWon - pointsLost);
+        matchCount++;
+      });
+      acc[player.name] = matchCount > 0 ? totalMargin / matchCount : 0;
+      return acc;
+    }, {} as Record<string, number>)
+  ];
+
   return (
     <div>
       <div className="flex flex-col md:flex-row gap-4 mb-6 items-start md:items-end">
@@ -271,9 +300,9 @@ const Dashboard: React.FC<DashboardProps> = ({ players, matches }) => {
             value={selectedSport}
             onChange={e => setSelectedSport(e.target.value)}
           >
-            <option value="all">All</option>
-            <option value="padel">Padel</option>
             <option value="badminton">Badminton</option>
+            <option value="padel">Padel</option>
+            <option value="all">All</option>
           </select>
         </div>
         <div className="flex items-center mt-2 md:mt-6">
@@ -288,7 +317,9 @@ const Dashboard: React.FC<DashboardProps> = ({ players, matches }) => {
         </div>
       </div>
       <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      {/* Groupe 1 : Statistiques de victoires */}
+      <h2 className="text-xl font-bold mb-2 mt-8">Statistiques de victoires</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="bg-white rounded shadow p-6 text-center">
           <div className="text-3xl font-bold text-primary-600">{totalPlayers}</div>
           <div className="text-gray-500">Players</div>
@@ -297,11 +328,13 @@ const Dashboard: React.FC<DashboardProps> = ({ players, matches }) => {
           <div className="text-3xl font-bold text-primary-600">{totalMatches}</div>
           <div className="text-gray-500">Matches</div>
         </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="bg-white rounded shadow p-6">
           <div className="text-gray-500 mb-2">Wins / Losses</div>
-          <ResponsiveContainer width="100%" height={80}>
+          <ResponsiveContainer width="100%" height={200}>
             <BarChart data={winLossData} layout="vertical">
-              <XAxis type="number" hide />
+              <XAxis type="number" />
               <YAxis type="category" dataKey="name" width={80} />
               <Tooltip />
               <Bar dataKey="Wins" fill="#22c55e" stackId="a" />
@@ -309,17 +342,19 @@ const Dashboard: React.FC<DashboardProps> = ({ players, matches }) => {
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {pointsStats.map(stat => (
-          <div key={stat.name} className="bg-white rounded shadow p-6 text-center">
-            <div className="text-lg font-semibold mb-2">{stat.name}</div>
-            <div className="text-2xl font-bold text-primary-600">{stat.pointsWon}</div>
-            <div className="text-gray-500 mb-2">Total Points Won</div>
-            <div className="text-2xl font-bold text-red-500">{stat.pointsLost}</div>
-            <div className="text-gray-500">Total Points Lost</div>
-          </div>
-        ))}
+        <div className="bg-white rounded shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Set Wins / Losses per Player</h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={setWinLossData} layout="vertical">
+              <XAxis type="number" />
+              <YAxis type="category" dataKey="name" width={80} />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="SetsWon" fill="#38bdf8" stackId="a" name="Sets Won" />
+              <Bar dataKey="SetsLost" fill="#fbbf24" stackId="a" name="Sets Lost" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
       <div className="bg-white rounded shadow p-6">
         <h2 className="text-xl font-semibold mb-4">Recent Matches</h2>
@@ -338,62 +373,88 @@ const Dashboard: React.FC<DashboardProps> = ({ players, matches }) => {
           ))}
         </ul>
       </div>
-      <div className="bg-white rounded shadow p-6 mt-8">
-        <h2 className="text-xl font-semibold mb-4">Set Wins / Losses per Player</h2>
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={setWinLossData} layout="vertical">
-            <XAxis type="number" />
-            <YAxis type="category" dataKey="name" width={80} />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="SetsWon" fill="#38bdf8" stackId="a" name="Sets Won" />
-            <Bar dataKey="SetsLost" fill="#fbbf24" stackId="a" name="Sets Lost" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="bg-white rounded shadow p-6 mt-8">
-        <h2 className="text-xl font-semibold mb-4">Wins Over Time</h2>
-        <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={winOverTimeData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis allowDecimals={false} />
-            <Tooltip />
-            <Legend />
-            {filteredPlayers.map((player, idx) => (
-              <Line key={player.id + '-w'} type="monotone" dataKey={`${player.name} Wins`} stroke={pieColors[idx % pieColors.length]} name={`${player.name} Wins`} />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="bg-white rounded shadow p-6 mt-8">
-        <h2 className="text-xl font-semibold mb-4">Total Set Wins by Player</h2>
-        <ResponsiveContainer width="100%" height={200}>
-          <PieChart>
-            <Pie data={setWinsPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-              {setWinsPieData.map((entry, idx) => (
-                <Cell key={`cell-${idx}`} fill={pieColors[idx % pieColors.length]} />
+      {/* Groupe 2 : Statistiques "Over Time" */}
+      <h2 className="text-xl font-bold mb-2 mt-12">Statistiques dans le temps</h2>
+      <div className="gap-6 mb-8">
+        <div className="bg-white rounded shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Wins Over Time</h2>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={winOverTimeData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis allowDecimals={false} />
+              <Tooltip />
+              <Legend />
+              {filteredPlayers.map((player, idx) => (
+                <Line key={player.id + '-w'} type="monotone" dataKey={`${player.name} Wins`} stroke={pieColors[idx % pieColors.length]} name={`${player.name} Wins`} />
               ))}
-            </Pie>
-            <Tooltip />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="bg-white rounded shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Points gagnés par match dans le temps</h2>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={pointsPerMatchOverTime} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="match" label={{ value: 'Match', position: 'insideBottom', offset: -5 }} allowDecimals={false} />
+              <YAxis label={{ value: 'Points gagnés', angle: -90, position: 'insideLeft' }} />
+              <Tooltip />
+              <Legend />
+              {filteredPlayers.map((player, idx) => (
+                <Line key={player.id} type="monotone" dataKey={player.name} stroke={pieColors[idx % pieColors.length]} name={player.name} />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
-      <div className="bg-white rounded shadow p-6 mt-8">
-        <h2 className="text-xl font-semibold mb-4">Average Set Margin per Player and Set Number</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={avgMarginPerPlayerPerSet} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="setNumber" label={{ value: 'Set Number', position: 'insideBottom', offset: -5 }} allowDecimals={false} />
-            <YAxis label={{ value: 'Avg. Margin', angle: -90, position: 'insideLeft' }} />
-            <Tooltip />
-            <Legend />
-            {filteredPlayers.map((player, idx) => (
-              <Bar key={player.id} dataKey={player.name} fill={pieColors[idx % pieColors.length]} name={player.name} />
+      {/* Camemberts côte à côte */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        <div className="bg-white rounded shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Total Set Wins by Player</h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie data={setWinsPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                {setWinsPieData.map((entry, idx) => (
+                  <Cell key={`cell-${idx}`} fill={pieColors[idx % pieColors.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend layout="vertical" verticalAlign="middle" align="right" />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="bg-white rounded shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Répartition totale des points gagnés</h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie data={totalPointsPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                {totalPointsPieData.map((entry, idx) => (
+                  <Cell key={`cell-pt-${idx}`} fill={pieColors[idx % pieColors.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend layout="vertical" verticalAlign="middle" align="right" />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+      {/* Groupe 3 : Statistiques de points */}
+      <h2 className="text-xl font-bold mb-2 mt-12">Statistiques de points</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {pointsStatsBySport.map(playerStat => (
+          <div key={playerStat.name} className="bg-white rounded shadow p-6 text-center">
+            <div className="text-lg font-semibold mb-2">{playerStat.name}</div>
+            {Object.entries(playerStat.statsBySport).map(([sport, stats]) => (
+              <div key={sport} className="mb-2">
+                <div className="text-md font-medium">{sport.charAt(0).toUpperCase() + sport.slice(1)}</div>
+                <div className="text-2xl font-bold text-primary-600">{stats.pointsWon}</div>
+                <div className="text-gray-500 mb-1">Points Won</div>
+                <div className="text-2xl font-bold text-red-500">{stats.pointsLost}</div>
+                <div className="text-gray-500">Points Lost</div>
+              </div>
             ))}
-          </BarChart>
-        </ResponsiveContainer>
+          </div>
+        ))}
       </div>
       <div className="bg-white rounded shadow p-6 mt-8">
         <h2 className="text-xl font-semibold mb-4">Points gagnés par set (moyenne)</h2>
@@ -410,33 +471,37 @@ const Dashboard: React.FC<DashboardProps> = ({ players, matches }) => {
           </BarChart>
         </ResponsiveContainer>
       </div>
+      {/* Groupe 4 : Statistiques de marge */}
+      <h2 className="text-xl font-bold mb-2 mt-12">Statistiques de marge</h2>
       <div className="bg-white rounded shadow p-6 mt-8">
-        <h2 className="text-xl font-semibold mb-4">Points gagnés par match dans le temps</h2>
+        <h2 className="text-xl font-semibold mb-4">Average Set Margin per Player and Set Number</h2>
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={pointsPerMatchOverTime} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+          <BarChart data={avgMarginPerPlayerPerSet} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="match" label={{ value: 'Match', position: 'insideBottom', offset: -5 }} allowDecimals={false} />
-            <YAxis label={{ value: 'Points gagnés', angle: -90, position: 'insideLeft' }} />
+            <XAxis dataKey="setNumber" label={{ value: 'Set Number', position: 'insideBottom', offset: -5 }} allowDecimals={false} />
+            <YAxis label={{ value: 'Avg. Margin', angle: -90, position: 'insideLeft' }} />
             <Tooltip />
             <Legend />
             {filteredPlayers.map((player, idx) => (
-              <Line key={player.id} type="monotone" dataKey={player.name} stroke={pieColors[idx % pieColors.length]} name={player.name} />
+              <Bar key={player.id} dataKey={player.name} fill={pieColors[idx % pieColors.length]} name={player.name} />
             ))}
-          </LineChart>
+          </BarChart>
         </ResponsiveContainer>
       </div>
+      {/* Nouveau bar graph : marge moyenne totale par match */}
       <div className="bg-white rounded shadow p-6 mt-8">
-        <h2 className="text-xl font-semibold mb-4">Répartition totale des points gagnés</h2>
-        <ResponsiveContainer width="100%" height={250}>
-          <PieChart>
-            <Pie data={totalPointsPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-              {totalPointsPieData.map((entry, idx) => (
-                <Cell key={`cell-pt-${idx}`} fill={pieColors[idx % pieColors.length]} />
-              ))}
-            </Pie>
+        <h2 className="text-xl font-semibold mb-4">Marge moyenne totale par match (points gagnés - points perdus)</h2>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={avgMarginPerPlayer} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey={() => ''} tick={false} />
+            <YAxis label={{ value: 'Marge moyenne', angle: -90, position: 'insideLeft' }} />
             <Tooltip />
             <Legend />
-          </PieChart>
+            {filteredPlayers.map((player, idx) => (
+              <Bar key={player.id} dataKey={player.name} name={player.name} fill={pieColors[idx % pieColors.length]} />
+            ))}
+          </BarChart>
         </ResponsiveContainer>
       </div>
     </div>
