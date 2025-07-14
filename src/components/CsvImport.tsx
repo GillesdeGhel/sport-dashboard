@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Papa from 'papaparse';
-import { apiService } from '../utils/api';
+import { supabase } from '../utils/supabaseClient';
 
 interface CsvRow {
   Date: string;
@@ -35,56 +35,51 @@ const CsvImport: React.FC = () => {
     setSuccess('');
     setError('');
     try {
-      
       // First, ensure players exist
       let gillesPlayer, tadPlayer;
-      
       try {
         // Try to get existing players
-        const players = await apiService.getPlayers();
-        gillesPlayer = players.find(p => p.name === 'Gilles');
-        tadPlayer = players.find(p => p.name === 'Tad');
-        
+        const { data: players, error: playersError } = await supabase.from('players').select('*');
+        if (playersError) throw playersError;
+        gillesPlayer = players.find((p: any) => p.name === 'Gilles');
+        tadPlayer = players.find((p: any) => p.name === 'Tad');
         // Create players if they don't exist
         if (!gillesPlayer) {
-          gillesPlayer = await apiService.createPlayer({ name: 'Gilles' });
+          const { data, error } = await supabase.from('players').insert([{ name: 'Gilles' }]).select();
+          if (error) throw error;
+          gillesPlayer = data && data[0];
         }
-        
         if (!tadPlayer) {
-          tadPlayer = await apiService.createPlayer({ name: 'Tad' });
+          const { data, error } = await supabase.from('players').insert([{ name: 'Tad' }]).select();
+          if (error) throw error;
+          tadPlayer = data && data[0];
         }
-        
       } catch (playerError) {
         console.error('Error handling players:', playerError);
         setError('Failed to create/find players: ' + (playerError as Error).message);
+        setLoading(false);
         return;
       }
-      
       for (const row of csvData) {
         // Parse date
         const dateString = row[''];
-        
         if (!dateString) {
           console.log('Skipping row - no date found');
           console.log(row);
           continue;
         }
-        
         // Validate and parse date (European style: dd/mm/YYYY)
         let parsedDate: Date;
         try {
-          // Try to parse the date string in dd/mm/YYYY format
           const dateParts = dateString.split('/');
           if (dateParts.length === 3) {
             const day = parseInt(dateParts[0], 10);
-            const month = parseInt(dateParts[1], 10) - 1; // JS months are 0-based
+            const month = parseInt(dateParts[1], 10) - 1;
             const year = parseInt(dateParts[2], 10);
             parsedDate = new Date(year, month, day);
           } else {
-            // Fallback: try native Date parsing
             parsedDate = new Date(dateString);
           }
-          // Check if the date is valid
           if (isNaN(parsedDate.getTime())) {
             console.log('Skipping row - invalid date:', dateString);
             console.log(row);
@@ -93,12 +88,8 @@ const CsvImport: React.FC = () => {
         } catch (err) {
           continue;
         }
-        
-
-        console.log(parsedDate, dateString);
         // Parse sets
         const sets = [];
-        
         for (let i = 1; i <= 6; i++) {
           const gillesScore = row[`Set ${i}`];
           const tadScore = row[`_${i + 1}`];
@@ -110,31 +101,42 @@ const CsvImport: React.FC = () => {
             });
           }
         }
-
-
         if (sets.length === 0) {
           continue;
         }
-        
         // Count sets won by each player
         const p1SetWins = sets.filter(s => s.winner === 'player1').length;
         const p2SetWins = sets.filter(s => s.winner === 'player2').length;
         let matchWinner: 'player1' | 'player2' | undefined = undefined;
         if (p1SetWins > p2SetWins) matchWinner = 'player1';
         else if (p2SetWins > p1SetWins) matchWinner = 'player2';
-
         // Create match with actual player IDs
-        await apiService.createMatch({
-          sportType: 'badminton',
-          matchType: 'singles',
-          player1Id: gillesPlayer.id,
-          player2Id: tadPlayer.id,
-          player1Name: 'Gilles',
-          player2Name: 'Tad',
-          date: parsedDate.toISOString(),
-          sets,
-          winner: matchWinner,
-        });
+        const { data: matchData, error: matchError } = await supabase.from('matches').insert([
+          {
+            sportType: 'badminton',
+            matchType: 'singles',
+            player1Id: gillesPlayer.id,
+            player2Id: tadPlayer.id,
+            player1Name: 'Gilles',
+            player2Name: 'Tad',
+            date: parsedDate.toISOString(),
+            winner: matchWinner,
+          }
+        ]).select();
+        if (matchError) throw matchError;
+        const newMatch = matchData && matchData[0];
+        if (!newMatch) continue;
+        // Insert sets
+        const setsToInsert = sets.map(set => ({
+          matchId: newMatch.id,
+          player1Score: set.player1Score,
+          player2Score: set.player2Score,
+          winner: set.winner
+        }));
+        if (setsToInsert.length > 0) {
+          const { error: setsError } = await supabase.from('sets').insert(setsToInsert);
+          if (setsError) throw setsError;
+        }
       }
       setSuccess('CSV data imported successfully!');
     } catch (err) {

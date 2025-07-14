@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@prisma/client": "^5.7.1",
+    "@supabase/supabase-js": "^2.51.0",
     "@types/node": "^16.18.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
