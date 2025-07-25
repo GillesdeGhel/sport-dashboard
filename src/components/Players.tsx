@@ -68,7 +68,7 @@ const Players: React.FC<PlayersProps> = ({ players, onAddPlayer, onUpdatePlayer,
           value={form.name}
           onChange={handleChange}
           placeholder="Name"
-          className="border rounded px-3 py-2 mr-2"
+          className="border rounded px-3 py-2 mr-0 md:mr-2 w-full md:w-auto"
           required
         />
         <input
@@ -77,7 +77,7 @@ const Players: React.FC<PlayersProps> = ({ players, onAddPlayer, onUpdatePlayer,
           value={form.email}
           onChange={handleChange}
           placeholder="Email (optional)"
-          className="border rounded px-3 py-2 mr-2"
+          className="border rounded px-3 py-2 mr-0 md:mr-2 w-full md:w-auto"
         />
         <input
           type="tel"
@@ -85,20 +85,20 @@ const Players: React.FC<PlayersProps> = ({ players, onAddPlayer, onUpdatePlayer,
           value={form.phone}
           onChange={handleChange}
           placeholder="Phone (optional)"
-          className="border rounded px-3 py-2 mr-2"
+          className="border rounded px-3 py-2 mr-0 md:mr-2 w-full md:w-auto"
         />
         <button
           type="submit"
-          className="bg-primary-600 text-white px-4 py-2 rounded font-semibold hover:bg-primary-700 transition-colors"
+          className="bg-primary-600 text-white px-4 py-2 rounded font-semibold hover:bg-primary-700 transition-colors w-full md:w-auto"
         >
           {editingId ? 'Update' : 'Add'}
         </button>
         {editingId && (
-          <button type="button" onClick={handleCancel} className="ml-2 text-gray-500 hover:underline">Cancel</button>
+          <button type="button" onClick={handleCancel} className="ml-0 md:ml-2 text-gray-500 hover:underline w-full md:w-auto">Cancel</button>
         )}
       </form>
-      <div className="bg-white rounded shadow p-6">
-        <table className="w-full text-left">
+      <div className="bg-white rounded shadow p-2 sm:p-6 overflow-x-auto">
+        <table className="w-full text-left min-w-[500px]">
           <thead>
             <tr>
               <th className="py-2">Name</th>

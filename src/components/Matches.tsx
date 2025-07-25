@@ -69,8 +69,59 @@ const Matches: React.FC<MatchesProps> = ({ matches, players, onUpdateMatch, onDe
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Matches</h1>
-      <div className="bg-white rounded shadow p-6">
-        <table className="w-full text-left">
+      {/* Card layout for mobile */}
+      <div className="md:hidden space-y-4">
+        {matches.length === 0 && (
+          <div className="bg-white rounded shadow p-4 text-gray-500 text-center">No matches yet.</div>
+        )}
+        {matches.map(match => (
+          <div key={match.id} className="bg-white rounded shadow p-4 flex flex-col gap-2">
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>{new Date(match.date).toLocaleDateString()}</span>
+              <span className="capitalize">{match.sportType}</span>
+              <span className="capitalize">{match.matchType}</span>
+            </div>
+            <div>
+              <div className="font-semibold mb-1">Players</div>
+              {getPlayerDisplay(match)}
+            </div>
+            <div>
+              <div className="font-semibold mb-1">Sets</div>
+              <ul className="text-sm">
+                {match.sets.map((set, index) => (
+                  <li key={set.id}>
+                    Set {index + 1}: {set.player1Score} - {set.player2Score}
+                    <span className="text-green-600 font-medium ml-1">
+                      ({set.winner === 'player1' ? 'Team 1' : 'Team 2'})
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <span className="font-semibold">Winner: </span>
+              <span className="text-green-600 font-medium">{getWinnerDisplay(match)}</span>
+            </div>
+            <div className="flex gap-2 mt-2">
+              <button
+                className="text-blue-500 hover:text-blue-700 hover:underline"
+                onClick={() => handleEditMatch(match)}
+              >
+                Edit
+              </button>
+              <button
+                className="text-red-500 hover:text-red-700 hover:underline"
+                onClick={() => onDeleteMatch(match.id)}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Table layout for desktop */}
+      <div className="bg-white rounded shadow p-2 sm:p-6 overflow-x-auto hidden md:block mt-4 md:mt-0">
+        <table className="w-full text-left min-w-[600px]">
           <thead>
             <tr className="border-b">
               <th className="py-2">Date</th>

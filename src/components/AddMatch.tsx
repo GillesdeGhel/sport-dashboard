@@ -127,6 +127,8 @@ const AddMatch: React.FC<AddMatchProps> = ({ players, onAddMatch }) => {
       sets,
       winner,
       date: new Date(date),
+      duration: undefined, // Set duration as undefined to match type
+      notes: undefined     // Set notes as undefined to match type
     };
     
     onAddMatch(match);
@@ -167,7 +169,7 @@ const AddMatch: React.FC<AddMatchProps> = ({ players, onAddMatch }) => {
           ✅ {success}
         </div>
       )}
-      <form onSubmit={handleSubmit} className="bg-white rounded shadow p-6 mb-6">
+      <form onSubmit={handleSubmit} className="bg-white rounded shadow p-4 sm:p-6 mb-6">
         <div className="mb-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <label className="block mb-1 font-medium">Sport</label>
@@ -291,7 +293,7 @@ const AddMatch: React.FC<AddMatchProps> = ({ players, onAddMatch }) => {
           {sets.length > 0 && (
             <ul className="mb-4 space-y-2">
               {sets.map((set, index) => (
-                <li key={set.id} className="bg-gray-50 p-2 rounded flex justify-between items-center">
+                <li key={set.id} className="bg-gray-50 p-2 rounded flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                   <span>
                     Set {index + 1}: {getPlayerName(player1Id)} {set.player1Score} - {getPlayerName(player2Id)} {set.player2Score} 
                     <span className="font-medium text-green-600 ml-2">
@@ -310,7 +312,7 @@ const AddMatch: React.FC<AddMatchProps> = ({ players, onAddMatch }) => {
             </ul>
           )}
           
-          <div className="flex gap-2 items-end">
+          <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end">
             <input
               type="number"
               min="0"
@@ -321,7 +323,7 @@ const AddMatch: React.FC<AddMatchProps> = ({ players, onAddMatch }) => {
                 setSuccess('');
               }}
               placeholder="P1 Score"
-              className="border rounded px-3 py-2"
+              className="border rounded px-3 py-2 w-full sm:w-auto"
             />
             <input
               type="number"
@@ -333,12 +335,12 @@ const AddMatch: React.FC<AddMatchProps> = ({ players, onAddMatch }) => {
                 setSuccess('');
               }}
               placeholder="P2 Score"
-              className="border rounded px-3 py-2"
+              className="border rounded px-3 py-2 w-full sm:w-auto"
             />
             <button 
               type="button" 
               onClick={handleAddSet}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors w-full sm:w-auto"
             >
               Add Set
             </button>
@@ -347,7 +349,7 @@ const AddMatch: React.FC<AddMatchProps> = ({ players, onAddMatch }) => {
         
         <button 
           type="submit" 
-          className="bg-primary-600 text-white px-6 py-2 rounded font-semibold hover:bg-primary-700 transition-colors"
+          className="bg-primary-600 text-white px-6 py-2 rounded font-semibold hover:bg-primary-700 transition-colors w-full sm:w-auto"
         >
           Add Match
         </button>

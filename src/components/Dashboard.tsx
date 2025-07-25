@@ -275,7 +275,7 @@ const Dashboard: React.FC<DashboardProps> = ({ players, matches }) => {
   ];
 
   return (
-    <div>
+    <div className="px-2 sm:px-0">
       <div className="flex flex-col md:flex-row gap-4 mb-6 items-start md:items-end">
         <div>
           <label className="block text-sm font-medium mb-1">Players</label>
@@ -456,7 +456,7 @@ const Dashboard: React.FC<DashboardProps> = ({ players, matches }) => {
           </div>
         ))}
       </div>
-      <div className="bg-white rounded shadow p-6 mt-8">
+      <div className="bg-white rounded shadow p-4 sm:p-6 mt-8">
         <h2 className="text-xl font-semibold mb-4">Points gagnés par set (moyenne)</h2>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={pointsPerSetPerPlayer} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
@@ -473,7 +473,7 @@ const Dashboard: React.FC<DashboardProps> = ({ players, matches }) => {
       </div>
       {/* Groupe 4 : Statistiques de marge */}
       <h2 className="text-xl font-bold mb-2 mt-12">Statistiques de marge</h2>
-      <div className="bg-white rounded shadow p-6 mt-8">
+      <div className="bg-white rounded shadow p-4 sm:p-6 mt-8">
         <h2 className="text-xl font-semibold mb-4">Average Set Margin per Player and Set Number</h2>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={avgMarginPerPlayerPerSet} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
@@ -489,7 +489,7 @@ const Dashboard: React.FC<DashboardProps> = ({ players, matches }) => {
         </ResponsiveContainer>
       </div>
       {/* Nouveau bar graph : marge moyenne totale par match */}
-      <div className="bg-white rounded shadow p-6 mt-8">
+      <div className="bg-white rounded shadow p-4 sm:p-6 mt-8">
         <h2 className="text-xl font-semibold mb-4">Marge moyenne totale par match (points gagnés - points perdus)</h2>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={avgMarginPerPlayer} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
