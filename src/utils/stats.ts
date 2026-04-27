@@ -23,7 +23,7 @@ export class StatsCalculator {
       match.sets.forEach(set => {
         const isPlayer1 = match.player1Id === playerId;
         const playerScore = isPlayer1 ? set.player1Score : set.player2Score;
-        const opponentScore = isPlayer1 ? set.player2Score : set.player1Score;
+        // opponentScore not needed here
         
         totalScore += playerScore;
         totalSets++;

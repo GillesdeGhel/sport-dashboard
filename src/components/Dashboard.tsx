@@ -149,20 +149,6 @@ const Dashboard: React.FC<DashboardProps> = ({ players, matches }) => {
     return match.winner === 'player1' ? match.player1Name : match.player2Name;
   };
 
-  // Win/loss margin histogram data
-  const marginData: { margin: number; count: number }[] = (() => {
-    const marginCounts: Record<number, number> = {};
-    filteredMatches.forEach(match => {
-      // Calculate total margin for the match (sum of set margins)
-      let margin = 0;
-      match.sets.forEach(set => {
-        margin += Math.abs(set.player1Score - set.player2Score);
-      });
-      if (!marginCounts[margin]) marginCounts[margin] = 0;
-      marginCounts[margin]++;
-    });
-    return Object.entries(marginCounts).map(([margin, count]) => ({ margin: Number(margin), count }));
-  })();
 
   // Pie chart for total set wins by player
   const setWinsPieData = filteredPlayers.map(player => {

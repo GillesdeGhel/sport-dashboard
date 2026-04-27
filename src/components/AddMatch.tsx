@@ -126,7 +126,6 @@ const AddMatch: React.FC<AddMatchProps> = ({ players, onAddMatch }) => {
     setDate(new Date().toISOString().slice(0, 10));
   };
 
-  const usedIds = [player1Id, player2Id, player3Id, player4Id].filter(Boolean);
   const availableForTeam1Partner = players.filter(p => p.id !== player1Id && p.id !== player2Id && p.id !== player4Id);
   const availableForTeam2Partner = players.filter(p => p.id !== player1Id && p.id !== player2Id && p.id !== player3Id);
 
