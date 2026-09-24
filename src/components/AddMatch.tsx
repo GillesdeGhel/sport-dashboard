@@ -12,11 +12,22 @@ interface AddMatchProps {
   onAddMatch: (match: Match) => void;
 }
 
+const DEFAULT_SPORT: SportType = 'badminton';
+
+const normalizeName = (name: string) =>
+  name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
+const findDefaultPlayerId = (players: Player[], prefix: string) =>
+  players.find(p => normalizeName(p.name).startsWith(prefix))?.id || '';
+
 const AddMatch: React.FC<AddMatchProps> = ({ players, onAddMatch }) => {
-  const [sportType, setSportType] = useState<SportType>('padel');
+  const defaultPlayer1Id = findDefaultPlayerId(players, 'gilles');
+  const defaultPlayer2Id = findDefaultPlayerId(players, 'tad');
+
+  const [sportType, setSportType] = useState<SportType>(DEFAULT_SPORT);
   const [matchType, setMatchType] = useState<MatchType>('singles');
-  const [player1Id, setPlayer1Id] = useState('');
-  const [player2Id, setPlayer2Id] = useState('');
+  const [player1Id, setPlayer1Id] = useState(defaultPlayer1Id);
+  const [player2Id, setPlayer2Id] = useState(defaultPlayer2Id);
   const [player3Id, setPlayer3Id] = useState('');
   const [player4Id, setPlayer4Id] = useState('');
   const [sets, setSets] = useState<Set[]>([]);
@@ -115,10 +126,10 @@ const AddMatch: React.FC<AddMatchProps> = ({ players, onAddMatch }) => {
       : `${player1.name} vs ${player2.name}`;
     setSuccess(`Match ajouté avec succès : ${matchDisplay} (${sportType})`);
 
-    setSportType('padel');
+    setSportType(DEFAULT_SPORT);
     setMatchType('singles');
-    setPlayer1Id('');
-    setPlayer2Id('');
+    setPlayer1Id(defaultPlayer1Id);
+    setPlayer2Id(defaultPlayer2Id);
     setPlayer3Id('');
     setPlayer4Id('');
     setSets([]);

@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 const navItems = [
-  { name: 'Dashboard', path: '/', emoji: '📊' },
+  { name: 'Ajouter', path: '/', emoji: '➕' },
+  { name: 'Dashboard', path: '/dashboard', emoji: '📊' },
   { name: 'Joueurs', path: '/players', emoji: '👤' },
   { name: 'Matchs', path: '/matches', emoji: '📋' },
-  { name: 'Ajouter', path: '/add-match', emoji: '➕' },
   { name: 'Import CSV', path: '/csv-import', emoji: '📥' },
 ];
 
