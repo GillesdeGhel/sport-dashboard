@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Player, Match } from './types';
 import { supabase } from './utils/supabaseClient';
@@ -249,6 +249,15 @@ function App() {
           <Routes>
             <Route 
               path="/" 
+              element={
+                <AddMatch 
+                  players={players}
+                  onAddMatch={addMatch}
+                />
+              } 
+            />
+            <Route 
+              path="/dashboard" 
               element={<Dashboard players={players} matches={matches} />} 
             />
             <Route 
@@ -285,12 +294,7 @@ function App() {
             />
             <Route 
               path="/add-match" 
-              element={
-                <AddMatch 
-                  players={players}
-                  onAddMatch={addMatch}
-                />
-              } 
+              element={<Navigate to="/" replace />} 
             />
             <Route 
               path="/csv-import" 
