@@ -1,6 +1,11 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Match, Player } from '../types';
 import EditMatch from './EditMatch';
+import {
+  fmtDay, groupSessions, inPeriod, matchPlayerIds, Period, PERIOD_LABEL,
+  playerColorMap, SPORT_EMOJI, SPORT_LABEL,
+} from '../utils/analytics';
+import { Card, Chip, ChipRow, MatchCard, PageTitle } from './ui';
 
 interface MatchesProps {
   matches: Match[];
@@ -9,218 +14,139 @@ interface MatchesProps {
   onDeleteMatch: (matchId: string) => void;
 }
 
-const SPORT_EMOJI: Record<string, string> = { padel: '🎾', badminton: '🏸' };
-
 const Matches: React.FC<MatchesProps> = ({ matches, players, onUpdateMatch, onDeleteMatch }) => {
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
-  const [filterSport, setFilterSport] = useState<string>('all');
-  const [filterType, setFilterType] = useState<string>('all');
+  const [sport, setSport] = useState<string>('all');
+  const [type, setType] = useState<string>('all');
+  const [playerId, setPlayerId] = useState<string>('all');
+  const [period, setPeriod] = useState<Period>('all');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const handleUpdateMatch = (updatedMatch: Match) => {
-    onUpdateMatch(updatedMatch);
-    setEditingMatch(null);
-  };
+  const colors = useMemo(() => playerColorMap(players), [players]);
+  const sortedPlayers = useMemo(() => [...players].sort((a, b) => a.name.localeCompare(b.name, 'fr')), [players]);
+
+  const filtered = useMemo(() => matches.filter(m => {
+    if (sport !== 'all' && m.sportType !== sport) return false;
+    if (type !== 'all' && m.matchType !== type) return false;
+    if (playerId !== 'all' && !matchPlayerIds(m).includes(playerId)) return false;
+    return inPeriod(m.date, period);
+  }), [matches, sport, type, playerId, period]);
+
+  const sessions = useMemo(() => groupSessions(filtered), [filtered]);
 
   if (editingMatch) {
     return (
       <EditMatch
         match={editingMatch}
         players={players}
-        onUpdateMatch={handleUpdateMatch}
+        onUpdateMatch={m => { onUpdateMatch(m); setEditingMatch(null); }}
         onCancel={() => setEditingMatch(null)}
       />
     );
   }
 
-  // Sort newest first, then filter
-  const sorted = [...matches].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  const filtered = sorted.filter(m => {
-    if (filterSport !== 'all' && m.sportType !== filterSport) return false;
-    if (filterType !== 'all' && m.matchType !== filterType) return false;
-    return true;
-  });
-
-  const formatDate = (date: Date | string) => {
-    const d = new Date(date);
-    return d.toLocaleDateString('fr-BE', { day: 'numeric', month: 'short', year: 'numeric' });
-  };
+  const actions = (match: Match) =>
+    confirmDeleteId === match.id ? (
+      <div className="flex items-center gap-1.5 text-xs">
+        <span className="text-slate-500">Supprimer ?</span>
+        <button
+          onClick={() => { onDeleteMatch(match.id); setConfirmDeleteId(null); }}
+          className="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 rounded-lg font-medium"
+        >Oui</button>
+        <button
+          onClick={() => setConfirmDeleteId(null)}
+          className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg font-medium"
+        >Non</button>
+      </div>
+    ) : (
+      <div className="flex items-center -my-1.5">
+        <button
+          onClick={() => setEditingMatch(match)}
+          className="p-2 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100"
+          title="Modifier" aria-label="Modifier"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        </button>
+        <button
+          onClick={() => setConfirmDeleteId(match.id)}
+          className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+          title="Supprimer" aria-label="Supprimer"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      </div>
+    );
 
   return (
     <div className="max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-gray-800">Matchs</h1>
-          <span className="bg-gray-100 text-gray-600 text-sm font-semibold px-2.5 py-0.5 rounded-full">
-            {filtered.length}
+      <PageTitle
+        title="Matchs"
+        right={
+          <span className="text-sm font-semibold text-slate-500 tabular-nums">
+            {filtered.length} match{filtered.length !== 1 ? 's' : ''} · {sessions.length} soirée{sessions.length !== 1 ? 's' : ''}
           </span>
-        </div>
-        {/* Filters */}
-        <div className="flex gap-2">
-          <select
-            value={filterSport}
-            onChange={e => setFilterSport(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">Tous les sports</option>
-            <option value="padel">🎾 Padel</option>
-            <option value="badminton">🏸 Badminton</option>
-          </select>
-          <select
-            value={filterType}
-            onChange={e => setFilterType(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">Simple & Double</option>
-            <option value="singles">👤 Simple</option>
-            <option value="doubles">👥 Double</option>
-          </select>
-        </div>
-      </div>
+        }
+      />
 
-      {filtered.length === 0 && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center text-gray-400">
-          <div className="text-5xl mb-3">🎾</div>
+      <Card className="p-4 space-y-3 mb-6 overflow-hidden">
+        <ChipRow label="Sport">
+          {['all', 'badminton', 'padel'].map(s => (
+            <Chip key={s} active={sport === s} onClick={() => setSport(s)}>{SPORT_EMOJI[s]} {SPORT_LABEL[s]}</Chip>
+          ))}
+        </ChipRow>
+        <ChipRow label="Type">
+          {[['all', 'Tous'], ['singles', '👤 Simple'], ['doubles', '👥 Double']].map(([v, l]) => (
+            <Chip key={v} active={type === v} onClick={() => setType(v)}>{l}</Chip>
+          ))}
+        </ChipRow>
+        <ChipRow label="Joueur">
+          <Chip active={playerId === 'all'} onClick={() => setPlayerId('all')}>Tous</Chip>
+          {sortedPlayers.map(p => (
+            <Chip key={p.id} active={playerId === p.id} onClick={() => setPlayerId(p.id)} color={colors[p.id]}>{p.name}</Chip>
+          ))}
+        </ChipRow>
+        <ChipRow label="Période">
+          {(Object.keys(PERIOD_LABEL) as Period[]).map(p => (
+            <Chip key={p} active={period === p} onClick={() => setPeriod(p)}>{PERIOD_LABEL[p]}</Chip>
+          ))}
+        </ChipRow>
+      </Card>
+
+      {sessions.length === 0 && (
+        <Card className="p-12 text-center text-slate-400">
+          <div className="text-5xl mb-3">🏸</div>
           <p className="font-medium">Aucun match trouvé</p>
-        </div>
+        </Card>
       )}
 
-      <div className="space-y-3">
-        {filtered.map(match => {
-          const isDoubles = match.matchType === 'doubles';
-          const team1Won = match.winner === 'player1';
-          const team2Won = match.winner === 'player2';
-          const setsWonTeam1 = match.sets.filter(s => s.winner === 'player1').length;
-          const setsWonTeam2 = match.sets.filter(s => s.winner === 'player2').length;
-          const sportEmoji = SPORT_EMOJI[match.sportType] ?? '🏅';
-
-          const team1Name = isDoubles
-            ? `${match.player1Name} & ${match.player3Name}`
-            : match.player1Name;
-          const team2Name = isDoubles
-            ? `${match.player2Name} & ${match.player4Name}`
-            : match.player2Name;
-
-          return (
-            <div
-              key={match.id}
-              className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
-            >
-              {/* Top bar: date + sport + type */}
-              <div className="flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-gray-100">
-                <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
-                  <span>{formatDate(match.date)}</span>
-                  <span className="text-gray-300">•</span>
-                  <span>{sportEmoji} {match.sportType.charAt(0).toUpperCase() + match.sportType.slice(1)}</span>
-                  <span className="text-gray-300">•</span>
-                  <span>{isDoubles ? '👥 Double' : '👤 Simple'}</span>
-                </div>
-                {/* Actions */}
-                <div className="flex items-center gap-1">
-                  {confirmDeleteId === match.id ? (
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <span className="text-gray-500">Confirmer ?</span>
-                      <button
-                        onClick={() => { onDeleteMatch(match.id); setConfirmDeleteId(null); }}
-                        className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded font-medium transition-colors"
-                      >Oui</button>
-                      <button
-                        onClick={() => setConfirmDeleteId(null)}
-                        className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded font-medium transition-colors"
-                      >Non</button>
-                    </div>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => setEditingMatch(match)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                        title="Modifier"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => setConfirmDeleteId(match.id)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                        title="Supprimer"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Main score row */}
-              <div className="px-4 py-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                {/* Team 1 */}
-                <div className={`flex flex-col items-start gap-1 ${team1Won ? '' : 'opacity-60'}`}>
-                  <span className={`font-bold text-base leading-tight ${team1Won ? 'text-gray-900' : 'text-gray-600'}`}>
-                    {isDoubles ? (
-                      <>
-                        <span className="block">{match.player1Name}</span>
-                        <span className="block text-sm text-gray-500 font-medium">&amp; {match.player3Name}</span>
-                      </>
-                    ) : team1Name}
+      <div className="space-y-6">
+        {sessions.map(session => (
+          <section key={session.key}>
+            <div className="flex items-center justify-between gap-3 px-1 mb-2">
+              <h2 className="text-sm font-bold text-slate-800">{fmtDay(session.date)}</h2>
+              <div className="flex items-center gap-2 text-xs text-slate-500 tabular-nums min-w-0 overflow-hidden">
+                {session.matches.length > 1 && session.tally.slice(0, 4).map(t => (
+                  <span key={t.id} className="flex items-center gap-1 whitespace-nowrap">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: colors[t.id] || '#94a3b8' }} />
+                    {t.name} <b className="text-slate-800">{t.wins}</b>
                   </span>
-                  {team1Won && (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
-                      🏆 Vainqueur
-                    </span>
-                  )}
-                </div>
-
-                {/* Score center */}
-                <div className="flex flex-col items-center gap-1.5 min-w-[80px]">
-                  <div className="flex items-center gap-1">
-                    <span className={`text-3xl font-black ${team1Won ? 'text-gray-900' : 'text-gray-400'}`}>
-                      {setsWonTeam1}
-                    </span>
-                    <span className="text-xl font-light text-gray-300 mx-0.5">–</span>
-                    <span className={`text-3xl font-black ${team2Won ? 'text-gray-900' : 'text-gray-400'}`}>
-                      {setsWonTeam2}
-                    </span>
-                  </div>
-                  {/* Set detail pills */}
-                  <div className="flex gap-1 flex-wrap justify-center">
-                    {match.sets.map((set, idx) => (
-                      <span
-                        key={set.id}
-                        className="text-xs font-mono font-semibold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600"
-                        title={`Set ${idx + 1}`}
-                      >
-                        {set.player1Score}–{set.player2Score}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Team 2 */}
-                <div className={`flex flex-col items-end gap-1 ${team2Won ? '' : 'opacity-60'}`}>
-                  <span className={`font-bold text-base leading-tight text-right ${team2Won ? 'text-gray-900' : 'text-gray-600'}`}>
-                    {isDoubles ? (
-                      <>
-                        <span className="block">{match.player2Name}</span>
-                        <span className="block text-sm text-gray-500 font-medium">&amp; {match.player4Name}</span>
-                      </>
-                    ) : team2Name}
-                  </span>
-                  {team2Won && (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
-                      🏆 Vainqueur
-                    </span>
-                  )}
-                </div>
+                ))}
+                {session.matches.length === 1 && <span>1 match</span>}
               </div>
             </div>
-          );
-        })}
+            <Card className="divide-y divide-slate-100">
+              {session.matches.map(m => (
+                <MatchCard key={m.id} match={m} colors={colors} actions={actions(m)} />
+              ))}
+            </Card>
+          </section>
+        ))}
       </div>
     </div>
   );

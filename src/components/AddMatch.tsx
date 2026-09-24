@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Player, Match, Set, SportType, MatchType } from '../types';
+import { DEFAULT_SPORT, findDefaultPlayerId } from '../utils/analytics';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL!;
@@ -11,14 +12,6 @@ interface AddMatchProps {
   players: Player[];
   onAddMatch: (match: Match) => void;
 }
-
-const DEFAULT_SPORT: SportType = 'badminton';
-
-const normalizeName = (name: string) =>
-  name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-
-const findDefaultPlayerId = (players: Player[], prefix: string) =>
-  players.find(p => normalizeName(p.name).startsWith(prefix))?.id || '';
 
 const AddMatch: React.FC<AddMatchProps> = ({ players, onAddMatch }) => {
   const defaultPlayer1Id = findDefaultPlayerId(players, 'gilles');

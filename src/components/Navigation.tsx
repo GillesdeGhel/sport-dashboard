@@ -1,77 +1,40 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 const navItems = [
   { name: 'Ajouter', path: '/', emoji: '➕' },
   { name: 'Dashboard', path: '/dashboard', emoji: '📊' },
-  { name: 'Joueurs', path: '/players', emoji: '👤' },
   { name: 'Matchs', path: '/matches', emoji: '📋' },
-  { name: 'Import CSV', path: '/csv-import', emoji: '📥' },
+  { name: 'Joueurs', path: '/players', emoji: '👤' },
+  { name: 'Import', path: '/csv-import', emoji: '📥' },
 ];
 
+const isActive = (pathname: string, path: string) =>
+  path === '/' ? pathname === '/' : pathname === path || pathname.startsWith(`${path}/`);
+
 const Navigation: React.FC = () => {
-  const location = useLocation();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const { pathname } = useLocation();
 
   return (
-    <nav className="bg-white border-b border-gray-100 shadow-sm mb-6">
-      <div className="container mx-auto px-4 py-0 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 py-4">
-          <span className="text-2xl">🏆</span>
-          <span className="text-lg font-bold text-gray-800 hidden sm:block">Sport Dashboard</span>
-        </Link>
+    <>
+      {/* Top bar */}
+      <nav className="sticky top-0 z-30 bg-white/85 backdrop-blur border-b border-slate-200/70">
+        <div className="container mx-auto px-4 flex items-center justify-between h-14">
+          <Link to="/" className="flex items-center gap-2">
+            <span className="text-2xl">🏸</span>
+            <span className="text-base font-extrabold tracking-tight text-slate-900">Sport Dashboard</span>
+          </Link>
 
-        {/* Desktop menu */}
-        <ul className="hidden md:flex items-center h-full">
-          {navItems.map(item => {
-            const active = location.pathname === item.path;
-            return (
-              <li key={item.path}>
-                <Link
-                  to={item.path}
-                  className={`flex items-center gap-1.5 px-4 py-5 text-sm font-medium transition-colors border-b-2 ${
-                    active
-                      ? 'text-blue-600 border-blue-600'
-                      : 'text-gray-600 hover:text-blue-600 border-transparent hover:border-blue-300'
-                  }`}
-                >
-                  <span>{item.emoji}</span>
-                  <span>{item.name}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-
-        {/* Hamburger */}
-        <button
-          className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Open menu"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            {mobileOpen
-              ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            }
-          </svg>
-        </button>
-      </div>
-
-      {/* Mobile drawer */}
-      {mobileOpen && (
-        <div className="md:hidden border-t border-gray-100 bg-white">
-          <ul className="px-4 py-2 space-y-1">
+          <ul className="hidden md:flex items-center gap-1">
             {navItems.map(item => {
-              const active = location.pathname === item.path;
+              const active = isActive(pathname, item.path);
               return (
                 <li key={item.path}>
                   <Link
                     to={item.path}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                      active ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'
+                    className={`flex items-center gap-1.5 px-3 h-9 rounded-full text-sm font-medium transition-colors ${
+                      active ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
                     }`}
-                    onClick={() => setMobileOpen(false)}
                   >
                     <span>{item.emoji}</span>
                     <span>{item.name}</span>
@@ -81,8 +44,34 @@ const Navigation: React.FC = () => {
             })}
           </ul>
         </div>
-      )}
-    </nav>
+      </nav>
+
+      {/* Bottom tab bar (mobile) */}
+      <nav
+        className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-slate-200"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <ul className="grid grid-cols-5">
+          {navItems.map(item => {
+            const active = isActive(pathname, item.path);
+            return (
+              <li key={item.path}>
+                <Link
+                  to={item.path}
+                  className={`flex flex-col items-center justify-center gap-0.5 h-16 text-[11px] font-semibold transition-colors ${
+                    active ? 'text-slate-900' : 'text-slate-400'
+                  }`}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  <span className={`text-xl leading-none px-3 py-1 rounded-full ${active ? 'bg-slate-100' : ''}`}>{item.emoji}</span>
+                  <span>{item.name}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </>
   );
 };
 
