@@ -114,6 +114,16 @@ npm run build
 npm run server
 ```
 
+## Sécurité Supabase (login + RLS)
+
+Le front parle directement à Supabase avec la clé `anon` (publique, visible dans le bundle JS).
+Les données sont donc protégées par Row-Level Security : seuls les utilisateurs connectés y ont accès.
+
+1. Dans le SQL Editor de Supabase, exécuter `supabase/migrations/20261029000000_enable_rls.sql`.
+2. Authentication → Users → **Add user** : créer ton compte (email + mot de passe, cocher "Auto confirm").
+3. Authentication → Sign In / Providers : désactiver **Allow new users to sign up**
+   (sinon n'importe qui peut se créer un compte et accéder aux données).
+
 ## API Endpoints
 
 ### Players

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { supabase } from '../utils/supabaseClient';
 
 const navItems = [
   { name: 'Ajouter', path: '/', emoji: '➕' },
@@ -25,24 +26,33 @@ const Navigation: React.FC = () => {
             <span className="text-base font-extrabold tracking-tight text-slate-900">Sport Dashboard</span>
           </Link>
 
-          <ul className="hidden md:flex items-center gap-1">
-            {navItems.map(item => {
-              const active = isActive(pathname, item.path);
-              return (
-                <li key={item.path}>
-                  <Link
-                    to={item.path}
-                    className={`flex items-center gap-1.5 px-3 h-9 rounded-full text-sm font-medium transition-colors ${
-                      active ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    <span>{item.emoji}</span>
-                    <span>{item.name}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          <div className="flex items-center gap-1">
+            <ul className="hidden md:flex items-center gap-1">
+              {navItems.map(item => {
+                const active = isActive(pathname, item.path);
+                return (
+                  <li key={item.path}>
+                    <Link
+                      to={item.path}
+                      className={`flex items-center gap-1.5 px-3 h-9 rounded-full text-sm font-medium transition-colors ${
+                        active ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span>{item.emoji}</span>
+                      <span>{item.name}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+            <button
+              type="button"
+              onClick={() => supabase.auth.signOut()}
+              className="px-3 h-9 rounded-full text-sm font-medium text-slate-500 hover:bg-slate-100 transition-colors"
+            >
+              Déconnexion
+            </button>
+          </div>
         </div>
       </nav>
 

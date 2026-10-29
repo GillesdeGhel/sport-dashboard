@@ -1,8 +1,10 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { Session } from '@supabase/supabase-js';
 import { Player, Match } from './types';
 import { supabase } from './utils/supabaseClient';
+import Login from './components/Login';
 import Navigation from './components/Navigation';
 import Dashboard from './components/Dashboard';
 import Players from './components/Players';
@@ -17,10 +19,27 @@ function App() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [session, setSession] = useState<Session | null>(null);
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
-    loadData();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+      setAuthReady(true);
+    });
+    return () => subscription.unsubscribe();
   }, []);
+
+  // Keyed on the user id so token refreshes don't trigger a reload
+  const userId = session?.user.id;
+  useEffect(() => {
+    if (userId) {
+      loadData();
+    } else {
+      setPlayers([]);
+      setMatches([]);
+    }
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     try {
@@ -212,7 +231,11 @@ function App() {
     }
   };
 
-  if (loading) {
+  if (authReady && !session) {
+    return <Login />;
+  }
+
+  if (!authReady || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
